@@ -1,0 +1,23 @@
+*{
+    user-select: none;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 100vw; 
+    height: 100vh;
+}
+.container{
+    position: relative;
+    border: 1px solid black;
+}
+.planet{
+    position: absolute;
+    border-radius: 50%;
+    background-color: red;
+}

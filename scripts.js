@@ -1,12 +1,12 @@
 const rectArraySize = 4;
 const circleArraySize = 3; 
-const countOfFigure = 2; 
+const countOfFigure = 10; 
 const R = 4; 
-const dt = .008;
+const dt = .03;
 const fps = 60;
 const distanceCoefficient = 1; // Нужен, чтобы подобрать нормальное ускорение к формуле a = G*m1*m2/R^2;
-const G = 20
-const softeningConstant = 0.0001 //Нужна, чтобы сила не уходила в бесконечность при очень близком расстоянии 
+const G = 50
+const softeningConstant = 1 //Нужна, чтобы сила не уходила в бесконечность при очень близком расстоянии 
 
 function spawnCoords(){
     return Math.round(5*R + Math.random() * (95 * R));
@@ -176,7 +176,7 @@ class Circle extends Figure{
         // if(this.id != 'Sun'){
             this.coordX += this.vx*dt;
             this.coordY += this.vy*dt;
-            this.coordZ += this.vz*dt;
+            // this.coordZ += this.vz*dt;
         // } else {
             // this.coordX = this.coordY = this.coordZ = 50 * R; 
         // }
@@ -185,7 +185,7 @@ class Circle extends Figure{
     updateVelocityVectors(){
         this.vx += this.ay*dt;
         this.vy += this.ay*dt;
-        this.vz += this.az*dt;
+        // this.vz += this.az*dt;
     }
     updateAccelerationVectors(forceElements, index){
         let ax = 0; 
@@ -197,20 +197,21 @@ class Circle extends Figure{
             let dz = obj.coordZ - this.coordZ;
             let R = Math.sqrt(dx**2 + dy**2);
             let F = (G * obj.mass) / ( R*R + softeningConstant )
-            console.log(this.mass)
-            ax += F * dx;
-            ay += F * dy;
+            ax += F * dx/(100*R);
+            ay += F * dy/(100*R);
             // az += F * dz; 
         });
+        console.log(ax, ay)
         this.ax = ax; 
         this.ay = ay;
         // this.az = az;
     }
     move(objectIndex, forceElements){
         super.move();
+        this.updatePositionVectors()
         this.updateAccelerationVectors(forceElements, objectIndex)
         this.updateVelocityVectors()
-        this.updatePositionVectors()
+        
         Field.drawPlanet(objectIndex, this.coordX, this.coordY, this.coordZ)
     }   
 }

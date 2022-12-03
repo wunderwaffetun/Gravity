@@ -16,8 +16,13 @@ body{
     position: relative;
     border: 1px solid black;
 }
+#Sun{
+    background-color: red;
+    height: 6px;
+    width: 6px;
+}
 .planet{
     position: absolute;
     border-radius: 50%;
-    background-color: red;
+    background-color: blue;
 }

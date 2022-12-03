@@ -1,12 +1,119 @@
-const rectArraySize = 4;
-const circleArraySize = 3; 
-const countOfFigure = 10; 
+import {reverseCoordinatesX, reverseCoordinatesY} from './border.js'
+import {determineInWhichSquare, adjacentCells} from './determineInWhichSquare.js'
+
+let countOfFigure = document.querySelectorAll('.planet').length // Мы можем вставить фигуры в ручную в html или сгенерировать с помощью createRandomPlanets нужное количество 
 const R = 4; 
-const dt = .03;
+const dt = .5;
 const fps = 60;
-const distanceCoefficient = 1; // Нужен, чтобы подобрать нормальное ускорение к формуле a = G*m1*m2/R^2;
-const G = 50
-const softeningConstant = 1 //Нужна, чтобы сила не уходила в бесконечность при очень близком расстоянии 
+const G = 10
+const softeningConstant = 10000 //Нужна, чтобы сила не уходила в бесконечность при очень близком расстоянии 
+const makeBorder = false
+const DebaevskyRadius = false // Включить оптимизацию или выключить 
+
+
+function refillingSquare(){
+    Field.ArrayOfSquares.forEach(square => square.figures = []) // полностью сбрасываем все местоположения
+    Field.ArrayOfSquares.forEach((square) => {
+        for(let i = 0; i < countOfFigure; i++){ //Первичное заполнение клеток поля
+            let currentNumberSquare = determineInWhichSquare(Field, Field.ArrayOfDifferentFigures[i].coordX, Field.ArrayOfDifferentFigures[i].coordY)
+            if(square.num == currentNumberSquare){
+                square.appendFigure(Field.ArrayOfDifferentFigures[i])
+            }
+            
+        }
+    })
+}
+
+function standartRun(){
+    for(let i = 0; i < countOfFigure; ++i){
+        let forceElements = new Array(); // те фигуры на которые влияют текущий объект
+        for(let j = 0; j < countOfFigure; j++){ // Создаём массив элеменотов без текущего, который будут изменять текущему скорость.
+            if(i != j){
+                forceElements.push(Field.ArrayOfDifferentFigures[j])
+            }
+        }
+        Field.ArrayOfDifferentFigures[i].move(i, forceElements)
+    }
+
+}
+
+
+function updateCadr(){
+    
+    if(DebaevskyRadius){
+        refillingSquare()
+        Field.ArrayOfSquares.forEach(square => {
+            let figs = square.figures
+            if(figs.length != 0){    
+                for(let i = 0; i < figs.length; i++){
+                    let forceElements = new Array()
+                    for(let j = 0; j < figs.length; j++){ //Заполняем forceElements объектами из данного квадрата
+                        if(i != j){
+                            forceElements.push(figs[j])
+                        }
+                    }
+                    adjacentCells(Field, square.num).forEach(squareNum =>{ // Заполняем forceElements соседними, forceEl - массив объектов, которые влияют на данный
+                        for(let square1 of Field.ArrayOfSquares){
+                            if(square1.num == squareNum){
+                                for(let j=0; j<square1.figures.length; j++){
+                                    forceElements.push(square1.figures[j])
+                                }
+                            }
+                        }
+                    })
+                    let currentIndex = Field.ArrayOfDifferentFigures.indexOf(figs[i])
+                    if(~currentIndex){
+                        Field.ArrayOfDifferentFigures[currentIndex].move(currentIndex, forceElements)
+                    }
+                }
+            }
+        })
+        
+    } else{
+        standartRun()
+    }
+}
+class Square { //Часть поля, которая принимает свой номер ПРИ СОЗДАНИИ и при смене кадров переопределяет figures - список элементов, содержащихся в нём 
+    constructor(number){
+        this.number = number;
+        this.figures = []
+    }
+    get num(){
+        return this.number
+    }
+    appendFigure(value){
+        this.figures.push(value)
+    }
+    getFigures(){
+        return this.figures
+    }
+    clearFig(){
+        this.figures = []
+    }
+}
+
+function splittingIntoSquares(){
+    for(let i=0; i < Field.squareNumber; i++){
+        Field.ArrayOfSquares.push(new Square(i))
+    }
+}
+
+
+
+function createRandomPlanets(countOfPlanets){
+    let i = 0; 
+    while (i < countOfPlanets){
+        let planet = document.createElement("div")
+        planet.classList.add('planet')
+        planet.setAttribute('mass', Math.round(Math.random() * 1000 + 500))
+        planet.setAttribute('id', "")
+        document.querySelector(".container").append(planet)
+        i++;
+        countOfFigure++;
+    }
+}
+
+
 
 function spawnCoords(){
     return Math.round(5*R + Math.random() * (95 * R));
@@ -20,8 +127,8 @@ function createNewCircle(index){
     let {centerCoordsX, centerCoordsY, centerCoordsZ, vx, vy, vz} = createRandomValues();
     let mass = this.startDataOfPlanetsArray[index].getAttribute("mass");
     let id = this.startDataOfPlanetsArray[index].getAttribute("id");
-    let ax = ay = az = 0;
-    let currentCir = new Circle({X: centerCoordsX, Y: centerCoordsY, Z: centerCoordsZ, mass, id, diametr: 2*R, vx, vy, vz, ax, ay, az});
+    let ax, ay = 0
+    let currentCir = new Circle({X: centerCoordsX, Y: centerCoordsY, Z: centerCoordsZ, mass, id, diametr: 2*R, vx, vy, ax, ay});
     return currentCir;
 }
 
@@ -36,50 +143,29 @@ function createRandomValues(){
 }
 
 function createBorders(){
+    if(!makeBorder){
+        document.querySelector(".container").style.border = "0px solid black";
+    }
     document.querySelector(".container").style.height = `${Field.height}px`
     document.querySelector(".container").style.width = `${Field.width}px`
     document.querySelector(".container").innerHTML = ''; // очищаемся от исходных .planet
 }
 
-function createPlanet(x, y, diametr, mass, vx, vy, vz, ax, ay, az){
-    planet = document.createElement("div");
+function createPlanet(x, y, id, diametr, mass, vx, vy, ax, ay){
+    let planet = document.createElement("div");
     planet.classList.add('planet');
     planet.style.left = `${x}px`;
     planet.style.bottom = `${y}px`;
     planet.style.width = `${R}px`;
     planet.style.height = `${R}px`;
-    console.log(mass, diametr);
+    planet.setAttribute("id", id);
     planet.setAttribute("mass", mass);
     planet.setAttribute("diametr", diametr);
     planet.setAttribute("vx", vx);
     planet.setAttribute("vy", vy);
-    planet.setAttribute("vz", vz);
     planet.setAttribute("ax", ax);
     planet.setAttribute("ay", ay);
-    planet.setAttribute("az", az);
     document.querySelector(".container").append(planet);
-}
-
-function reverseCoordinatesX(whatBorder, obj){
-    switch(whatBorder){
-        case "rightBorder":
-            obj.vx = -obj.vx;
-            break;
-        case "leftBorder":
-            obj.vx = -obj.vx;
-            break;
-    }
-}
-
-function reverseCoordinatesY(whatBorder, obj){
-    switch(whatBorder){
-        case "topBorder":
-            obj.vy = -obj.vy;
-            break;
-        case "bottomBorder":
-            obj.vy = -obj.vy;
-            break;
-    }
 }
 
 class Field{
@@ -87,43 +173,40 @@ class Field{
     static height = 100*R; 
     static squareNumber = 16 // Разбиваем поле на области влияния
     static ArrayOfDifferentFigures = [];
-    startDataOfPlanetsArray = document.querySelectorAll('.planet');
+    static ArrayOfSquares = [] // Дебаевский радиуc, все квадраты, которые будут содержать объекты
+    static stepOfSplitting = 100*R*R / Field.squareNumber // ширина и высота миниквадратов
     constructor(){ 
-        this.circleOpportunity = 0.5;
+        this.startDataOfPlanetsArray = document.querySelectorAll('.planet');
     }
     render(){
         createBorders()
+        splittingIntoSquares() // разбиваем поле на квадраты 
         for(let i = 0; i < countOfFigure; i++){
             let currentCir = createNewCircle.call(this, i)
             Field.ArrayOfDifferentFigures.push(currentCir);
             currentCir.createThis();//стартовое расположение(уже в браузере)
-            
         }
-        for(let i = 0; i < countOfFigure; ++i){
-            let forceElements = new Array();
-            for(let j = 0; j < countOfFigure; j++){ // Создаём массив элеменотов без текущего, который будут изменять текущему скорость.
-                if(i != j){
-                    forceElements.push(Field.ArrayOfDifferentFigures[j])
-                }
-            }
-            setInterval(() => {
-                Field.ArrayOfDifferentFigures[i].move(i, forceElements)
-            }, 1000/fps);
-        }
+        refillingSquare()
+        setInterval(() => {
+            updateCadr()
+        }, 1000/fps);
     }
-    static drawPlanet(objectIndex, x, y, z){
+    
+    static drawPlanet(objectIndex, x, y){
         let PlanetsDivs = document.querySelectorAll('.planet');
         let currentDrawPlanet = PlanetsDivs[objectIndex];
         currentDrawPlanet.style.left = `${x}px`;
         currentDrawPlanet.style.bottom = `${y}px`;
-        reverseCoordinatesX(Field.ArrayOfDifferentFigures[objectIndex].isCrossBorderX(x), Field.ArrayOfDifferentFigures[objectIndex]) //если всё сделать одной функцией, то может улетать за границу т.к. по 2-ой координате не будет успевать проверяться
-        reverseCoordinatesY(Field.ArrayOfDifferentFigures[objectIndex].isCrossBorderY(y), Field.ArrayOfDifferentFigures[objectIndex])
-        currentDrawPlanet.setAttribute("vx", Field.ArrayOfDifferentFigures[objectIndex].vx);
-        currentDrawPlanet.setAttribute("vy", Field.ArrayOfDifferentFigures[objectIndex].vy);
-        currentDrawPlanet.setAttribute("vz", Field.ArrayOfDifferentFigures[objectIndex].vz);
-        currentDrawPlanet.setAttribute("ax", Field.ArrayOfDifferentFigures[objectIndex].ax);
-        currentDrawPlanet.setAttribute("ay", Field.ArrayOfDifferentFigures[objectIndex].ay);
-        currentDrawPlanet.setAttribute("az", Field.ArrayOfDifferentFigures[objectIndex].az);
+        let curFigure = Field.ArrayOfDifferentFigures[objectIndex]
+        if(makeBorder){
+            reverseCoordinatesX(curFigure.isCrossBorderX(x), curFigure) //если всё сделать одной функцией, то может улетать за границу т.к. по 2-ой координате не будет успевать проверяться
+            reverseCoordinatesY(curFigure.isCrossBorderY(y), curFigure)
+        }
+        currentDrawPlanet.setAttribute("vx", curFigure.vx);
+        currentDrawPlanet.setAttribute("vy", curFigure.vy);
+        currentDrawPlanet.setAttribute("ax", curFigure.ax);
+        currentDrawPlanet.setAttribute("ay", curFigure.ay);
+        
     }
 }
 
@@ -166,57 +249,66 @@ class Circle extends Figure{
         let {mass, id, diametr, vx, vy, vz, ax, ay, az} = params;
         this.diametr = diametr; this.mass = Number(mass); this.id = id, this.vx = vx; this.vy = vy, this.vz = vz, this.ax = ax, this.ay = ay, this.az = az;
     };
+    
     get type(){
         return 'Circle';
     }
     createThis(){
-        createPlanet(this.coordX, this.coordY, this.coordZ, this.mass, this.diametr, this.vx, this.vy, this.vz, 0, 0, 0)
+        createPlanet(this.coordX, this.coordY, this.id, this.coordZ, this.mass, this.diametr, this.vx, this.vy, this.vz, 0, 0, 0)
+    }
+    updateSquare(){
+        // let currentSquare = determineInWhichSquare(Field, this.coordX, this.coordY)
+        // if(currentSquare >= 0 && currentSquare < Field.squareNumber - 1){
+        //     Field.ArrayOfSquares.forEach(square => {
+        //         if(square.number == currentSquare && square.figures != undefined){
+        //             square.appendFigures(this)
+        //         }
+        //     })
+        // }
+        // let currentSquare
     }
     updatePositionVectors(){
-        // if(this.id != 'Sun'){
+        
+        if(this.id != 'Sun'){
             this.coordX += this.vx*dt;
             this.coordY += this.vy*dt;
-            // this.coordZ += this.vz*dt;
-        // } else {
-            // this.coordX = this.coordY = this.coordZ = 50 * R; 
-        // }
-        
+            console.log('hello')
+        } else{
+            this.coordX = 50*R; 
+            this.coordY = 50*R;
+        }
     }
     updateVelocityVectors(){
-        this.vx += this.ay*dt;
+        this.vx += this.ax*dt;
         this.vy += this.ay*dt;
-        // this.vz += this.az*dt;
     }
     updateAccelerationVectors(forceElements, index){
+        console.log(forceElements)
         let ax = 0; 
         let ay = 0;
-        let az = 0;
         forceElements.forEach((obj, j) => {
             let dx = obj.coordX - this.coordX;
             let dy = obj.coordY - this.coordY;
-            let dz = obj.coordZ - this.coordZ;
-            let R = Math.sqrt(dx**2 + dy**2);
-            let F = (G * obj.mass) / ( R*R + softeningConstant )
+            let R2 = dx*dx + dy*dy;
+            let F = (G * obj.mass) / ( R2 * Math.sqrt(softeningConstant + R2) )
             ax += F * dx/(100*R);
             ay += F * dy/(100*R);
-            // az += F * dz; 
         });
-        console.log(ax, ay)
         this.ax = ax; 
         this.ay = ay;
-        // this.az = az;
+    
     }
     move(objectIndex, forceElements){
         super.move();
-        this.updatePositionVectors()
         this.updateAccelerationVectors(forceElements, objectIndex)
         this.updateVelocityVectors()
-        
+        this.updatePositionVectors()
         Field.drawPlanet(objectIndex, this.coordX, this.coordY, this.coordZ)
     }   
 }
 
 (function main(){
-    field = new Field();
+    createRandomPlanets(10)
+    let field = new Field();
     field.render();
 })();

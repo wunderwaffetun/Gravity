@@ -1,7 +1,7 @@
 let countOfFigure = document.querySelectorAll('.planet').length // Мы можем вставить фигуры в ручную в html или сгенерировать с помощью createRandomPlanets нужное количество 
 const R = 4; 
 const dt = .03;
-const numberOfPlanets = 100
+const numberOfPlanets = 10
 const fps = 60;
 const DebaevskyRadius = 200*R // На каком расстоянии планеты перестанут взаимодействовать
 const G = 10
@@ -29,8 +29,8 @@ class Circle{
             this.coordX += this.vx*dt;
             this.coordY += this.vy*dt;
         } else{
-            this.coordX =50*R + 20*R * Math.cos(alpha* dt)
-            this.coordY =50*R + 20*R * Math.sin(alpha* dt)
+            this.coordX =50*R + 50*R * Math.cos(alpha* dt)
+            this.coordY =50*R + 50*R * Math.sin(alpha* dt)
         }
     }
     updateVelocityVectors(){

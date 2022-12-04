@@ -294,7 +294,7 @@ class Circle extends Figure{
         this.updateVelocityVectors()
         this.updatePositionVectors()
         Field.drawPlanet(objectIndex, this.coordX, this.coordY, this.coordZ)
-    }   
+    } 
 }
 
 (function main(){
@@ -302,3 +302,4 @@ class Circle extends Figure{
     let field = new Field();
     field.render();
 })();
+// hi i from main

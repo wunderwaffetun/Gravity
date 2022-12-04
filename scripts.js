@@ -296,7 +296,7 @@ class Circle extends Figure{
         Field.drawPlanet(objectIndex, this.coordX, this.coordY, this.coordZ)
     }   
 }
-
+//hello i from squares 
 (function main(){
     createRandomPlanets(10)
     let field = new Field();

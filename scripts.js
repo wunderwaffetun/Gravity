@@ -302,4 +302,3 @@ class Circle extends Figure{
     let field = new Field();
     field.render();
 })();
-// hi i from main

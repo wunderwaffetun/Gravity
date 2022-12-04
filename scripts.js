@@ -256,17 +256,7 @@ class Circle extends Figure{
     createThis(){
         createPlanet(this.coordX, this.coordY, this.id, this.coordZ, this.mass, this.diametr, this.vx, this.vy, this.vz, 0, 0, 0)
     }
-    updateSquare(){
-        // let currentSquare = determineInWhichSquare(Field, this.coordX, this.coordY)
-        // if(currentSquare >= 0 && currentSquare < Field.squareNumber - 1){
-        //     Field.ArrayOfSquares.forEach(square => {
-        //         if(square.number == currentSquare && square.figures != undefined){
-        //             square.appendFigures(this)
-        //         }
-        //     })
-        // }
-        // let currentSquare
-    }
+    
     updatePositionVectors(){
         
         if(this.id != 'Sun'){

@@ -14,7 +14,6 @@ body{
 }
 .container{
     position: relative;
-    border: 1px solid black;
 }
 #Sun{
     background-color: red;

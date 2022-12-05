@@ -1,12 +1,14 @@
 let countOfFigure = document.querySelectorAll('.planet').length // Мы можем вставить фигуры в ручную в html или сгенерировать с помощью createRandomPlanets нужное количество 
 const R = 4; 
-const dt = .03;
-const numberOfPlanets = 10
+const dt = .09;
+const numberOfPlanets = 100
 const fps = 60;
-const DebaevskyRadius = 200*R // На каком расстоянии планеты перестанут взаимодействовать
+const DebaevskyRadius = Infinity // На каком расстоянии планеты перестанут взаимодействовать
 const G = 10
 const softeningConstant = 10000 //Нужна, чтобы сила не уходила в бесконечность при очень близком расстоянии \
+const container = document.querySelector('.container')
 let alpha = 0 // угол движения Солнца по окружности (Солнце здесь независимо)
+
 class Circle{
     constructor(params){
         let {X, Y, diametr, mass, id, vx, vy, ax, ay} = params
@@ -38,30 +40,72 @@ class Circle{
         this.vy += this.ay*dt;
     }
     updateAccelerationVectors(index){
+        let ArrNodesOfPlanets = Array.from(document.querySelectorAll('.planet'))
+        let delElemsIndexes = []
+        let currentDiametr = +getComputedStyle(ArrNodesOfPlanets[index]).width.slice(0, -2) //при слипании увеличу радиус объектов
+        let diametrOfJObject = 0;
         let ax = 0; 
         let ay = 0;
         for(let j = 0; j < countOfFigure; j++){ // элеменоты, который будут изменять текущему скорость.
-            if(index != j){ // сам на себя не влияет
+
+            if(index != j && Field.ArrayOfDifferentFigures[j] != 'deleted'){ // сам на себя не влияет и не удалён 
                 let currentCir = Field.ArrayOfDifferentFigures[index]
                 let influenceElem = Field.ArrayOfDifferentFigures[j]
                 let dx = influenceElem.coordX - currentCir.coordX;
                 let dy = influenceElem.coordY - currentCir.coordY;
-                let R2 = dx*dx + dy*dy;
-                if(R2 < DebaevskyRadius**2){
-                    let F = (G * influenceElem.mass) / ( R2 * Math.sqrt(softeningConstant + R2) )
+                let distance = Math.sqrt(dx*dx + dy*dy);
+
+                if(distance < (currentDiametr/2 + 4)){ //Логика слипания 
+                    let maxDiametr = Math.max(diametrOfJObject, currentDiametr)
+                    let newDiametr = maxDiametr + 10/maxDiametr
+                    let m1 = currentCir.mass; 
+                    let m2 = influenceElem.mass; 
+                    let v1x = currentCir.vx; 
+                    let v2x = influenceElem.vx; 
+                    let v1y = currentCir.vy; 
+                    let v2y = influenceElem.vy
+                    let v3x = (m1*v1x + m2*v2x)/(m1+m2)
+                    let v3y = (m1*v1y + m2*v2y)/(m1+m2)
+                    diametrOfJObject = +getComputedStyle(ArrNodesOfPlanets[j]).width.slice(0, -2)
+                    currentCir.mass = m1 + m2
+                    currentCir.vx = v3x
+                    currentCir.vy = v3y
+                    delElemsIndexes.push(+j)
+                    ArrNodesOfPlanets[index].setAttribute('diametr', newDiametr)
+                    ArrNodesOfPlanets[index].setAttribute('mass', currentCir.mass)
+                    ArrNodesOfPlanets[index].style.width = `${newDiametr}px`
+                    ArrNodesOfPlanets[index].style.height = `${newDiametr}px`
+                }
+
+                if(distance < DebaevskyRadius){
+                    let F = (G * influenceElem.mass) / ( distance**2 * Math.sqrt(softeningConstant + distance**2) )
                     ax += F * dx/(100*R);
                     ay += F * dy/(100*R);
                 }
+
             }
         }
+        delElemsIndexes.forEach(ind => { // Жизнь объектов после смерти 
+            if(Field.ArrayOfDifferentFigures[ind].id != 'Sun'){ //Солнце мы не удаляем 
+                ArrNodesOfPlanets[ind].style.display = 'none'
+                Field.ArrayOfDifferentFigures.splice(ind, 1, 'deleted')
+                ArrNodesOfPlanets.splice(ind, 1, 'deleted')
+                document.querySelectorAll('.planet')[ind].setAttribute('deleted', 'true')
+                countOfFigure = document.querySelectorAll('.planet').length
+                ArrNodesOfPlanets = Array.from(document.querySelectorAll('.planet'))
+            }
+        })
+        
         this.ax = ax; 
         this.ay = ay;
     }
     move(objectIndex){
-        this.updateAccelerationVectors(objectIndex)
-        this.updateVelocityVectors()
         this.updatePositionVectors()
         Field.drawPlanet(objectIndex, this.coordX, this.coordY)
+        this.updateAccelerationVectors(objectIndex)
+        this.updateVelocityVectors()
+        
+        
     } 
 }
 class Field{
@@ -79,15 +123,15 @@ class Field{
             currentCir.createThisHTML();//стартовое расположение(уже в браузере)
         }
         setInterval(() => {
-            alpha += 0.02
             updateCadr()
         }, 1000/fps);
     }
     static drawPlanet(objectIndex, x, y){
         let PlanetsDivs = document.querySelectorAll('.planet');
         let currentDrawPlanet = PlanetsDivs[objectIndex];
-        currentDrawPlanet.style.left = `${x}px`;
-        currentDrawPlanet.style.bottom = `${y}px`;
+        let currentDiametr = +currentDrawPlanet.getAttribute('diametr')//Тектсура уходит вверх и вправо над реальным объектом
+        currentDrawPlanet.style.left = `${x-currentDiametr/2}px`;
+        currentDrawPlanet.style.bottom = `${y-currentDiametr/2}px`;
         let curFigure = Field.ArrayOfDifferentFigures[objectIndex]
         currentDrawPlanet.setAttribute("vx", curFigure.vx);
         currentDrawPlanet.setAttribute("vy", curFigure.vy);
@@ -129,8 +173,12 @@ function spawnVelocity(){
 }
 
 function updateCadr(){
+    countOfFigure = document.querySelectorAll('.planet').length
+    alpha += 0.02
     for(let i = 0; i < countOfFigure; ++i){
-        Field.ArrayOfDifferentFigures[i].move(i)
+        if(Field.ArrayOfDifferentFigures[i] != 'deleted'){
+            Field.ArrayOfDifferentFigures[i].move(i)
+        }
     }
 }
 
@@ -139,8 +187,15 @@ function createPlanet(x, y, id, mass, diametr, vx, vy, ax, ay){
     planet.classList.add('planet');
     planet.style.left = `${x}px`;
     planet.style.bottom = `${y}px`;
-    planet.style.width = `${R}px`;
-    planet.style.height = `${R}px`;
+    if(id == 'Sun'){
+        planet.style.height = `${2*R}px`;
+        planet.style.width = `${2*R}px`;
+    } else {
+        planet.style.height = `${R}px`;
+        planet.style.width = `${R}px`;
+    }
+    
+    
     planet.setAttribute("id", id); // свернуть это можно только если создать отдельный массив [id, ...] не делал для наглядности
     planet.setAttribute("mass", mass);
     planet.setAttribute("diametr", diametr);

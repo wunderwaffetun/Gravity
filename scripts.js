@@ -1,6 +1,6 @@
 let countOfFigure = document.querySelectorAll('.planet').length // Мы можем вставить фигуры в ручную в html или сгенерировать с помощью createRandomPlanets нужное количество 
 const R = 4; 
-const dt = .09;
+const dt = .03;
 const numberOfPlanets = 100
 const fps = 60;
 const DebaevskyRadius = Infinity // На каком расстоянии планеты перестанут взаимодействовать

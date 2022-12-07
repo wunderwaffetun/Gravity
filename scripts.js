@@ -1,6 +1,6 @@
 let countOfFigure = document.querySelectorAll('.planet').length // Мы можем вставить фигуры в ручную в html или сгенерировать с помощью createRandomPlanets нужное количество 
 const R = 4; 
-const dt = .03;
+const dt = .1;
 const numberOfPlanets = 100
 const fps = 60;
 const DebaevskyRadius = Infinity // На каком расстоянии планеты перестанут взаимодействовать
@@ -26,14 +26,8 @@ class Circle{
         createPlanet(this.coordX, this.coordY, this.id, this.mass, this.diametr, this.vx, this.vy,  0, 0)
     }
     updatePositionVectors(){
-        
-        if(this.id != 'Sun'){
             this.coordX += this.vx*dt;
             this.coordY += this.vy*dt;
-        } else{
-            this.coordX =50*R + 50*R * Math.cos(alpha* dt)
-            this.coordY =50*R + 50*R * Math.sin(alpha* dt)
-        }
     }
     updateVelocityVectors(){
         this.vx += this.ax*dt;
@@ -148,23 +142,28 @@ function preFunction(){
 }
 
 function createNewCircle(index){
-    let {centerCoordsX, centerCoordsY, vx, vy} = createRandomValues();
-    let mass = this.startDataOfPlanetsArray[index].getAttribute("mass");
     let id = this.startDataOfPlanetsArray[index].getAttribute("id");
+    if(id === "") id = `${index}`
+    let {centerCoordsX, centerCoordsY, vx, vy} = createRandomValues(id);
+    let mass = this.startDataOfPlanetsArray[index].getAttribute("mass");
     let ax, ay = 0
     let currentCir = new Circle({X: centerCoordsX, Y: centerCoordsY, mass, id, diametr: 2*R, vx, vy, ax, ay});
     return currentCir;
 }
 
-function createRandomValues(){
-    let centerCoordsX = spawnCoords(),
-        centerCoordsY = spawnCoords()
+function createRandomValues(id){
+    let centerCoordsX = spawnCoord(),
+        centerCoordsY = spawnCoord()
     let vx = spawnVelocity(),
         vy = spawnVelocity()
+    if(id == 'Sun'){
+        vx = vy = 0
+        centerCoordsY = centerCoordsX = 50*R
+    }
     return {centerCoordsX, centerCoordsY, vx, vy}; 
 }
 
-function spawnCoords(){
+function spawnCoord(){
     return Math.round(5*R + Math.random() * (95 * R));
 }
 
